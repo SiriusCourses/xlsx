@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -11,6 +12,11 @@ module Codec.Xlsx.Types.Internal.SharedStringTable (
   , sstEmpty
   ) where
 
+#ifdef USE_MICROLENS
+import Lens.Micro
+#else
+import Control.Lens hiding ((<.>), element, views)
+#endif
 import Control.Monad
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe)
@@ -99,7 +105,7 @@ sstConstruct =
 
     sstEntry :: CellValue -> Maybe XlsxText
     sstEntry (CellText text) = Just $ XlsxText (cleanText text)
-    sstEntry (CellRich rich) = Just $ XlsxRichText (cleanText rich)
+    sstEntry (CellRich rich) = Just $ XlsxRichText (rich & traverse.richTextRunText %~ cleanText)
     sstEntry _               = Nothing
 
     uniq :: Ord a => [a] -> [a]

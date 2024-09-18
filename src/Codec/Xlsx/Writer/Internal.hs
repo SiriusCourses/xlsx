@@ -39,6 +39,7 @@ module Codec.Xlsx.Writer.Internal (
   , justNonDef
   , justTrue
   , justFalse
+  , cleanText
   ) where
 
 import qualified Data.Map as Map
@@ -228,5 +229,5 @@ justTrue :: Bool -> Maybe Bool
 justTrue = justNonDef False
 
 
-cleanText :: Text.Text -> Text.Text
-cleanText = Text.filter (\x -> (ord x == 10 || ord x >= 13) && ord x /= 31)
+cleanText :: Text -> Text
+cleanText = T.filter (\x -> (ord x == 10 || ord x >= 13) && ord x /= 31)
