@@ -39,6 +39,7 @@ import Diff
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
 import TestXlsx
+import           Codec.Xlsx.Writer.Internal (cleanText)
 import qualified Codec.Xlsx.Writer.Stream as SW
 import qualified Codec.Xlsx.Writer.Internal.Stream as SW
 import Control.Monad (void)
@@ -113,10 +114,10 @@ sharedStringInputTextsIsSameAsMapLength :: [Text] -> Bool
 sharedStringInputTextsIsSameAsMapLength someTexts =
     length result == length unqTexts
   where
-   result  :: Map Text Int
+   result  :: Map Text SW.T
    result = view SW.string_map $ traverse SW.upsertSharedString someTexts `execState` SW.initialSharedString
    unqTexts :: Set Text
-   unqTexts = Set.fromList someTexts
+   unqTexts = Set.fromList (map cleanText someTexts)
 
 -- test for every unique string we get a unique number
 sharedStringInputTextsIsSameAsValueSetLength :: [Text] -> Bool
@@ -124,9 +125,11 @@ sharedStringInputTextsIsSameAsValueSetLength someTexts =
     length result == length unqTexts
   where
    result  :: Set Int
-   result = setOf (SW.string_map . traversed) $ traverse SW.upsertSharedString someTexts `execState` SW.initialSharedString
+   result =
+     setOf (SW.string_map . traversed . to (\(SW.T _ i) -> i)) $
+       traverse SW.upsertSharedString someTexts `execState` SW.initialSharedString
    unqTexts :: Set Text
-   unqTexts = Set.fromList someTexts
+   unqTexts = Set.fromList (map cleanText someTexts)
 
 -- can we do xx
 simpleWorkbook :: Xlsx
