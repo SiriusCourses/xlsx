@@ -448,6 +448,7 @@ appXml sheetNames =
 
 data XlsxCellData
   = XlsxSS Int
+  | XlsxStr Text
   | XlsxDouble Double
   | XlsxBool Bool
   | XlsxError ErrorType
@@ -462,12 +463,14 @@ data XlsxCell = XlsxCell
 
 xlsxCellType :: XlsxCell -> Text
 xlsxCellType XlsxCell{xlsxCellValue=Just(XlsxSS _)} = "s"
+xlsxCellType XlsxCell{xlsxCellValue=Just(XlsxStr _)} = "str"
 xlsxCellType XlsxCell{xlsxCellValue=Just(XlsxBool _)} = "b"
 xlsxCellType XlsxCell{xlsxCellValue=Just(XlsxError _)} = "e"
 xlsxCellType _ = "n" -- default in SpreadsheetML schema, TODO: add other types
 
 value :: XlsxCellData -> Text
 value (XlsxSS i)       = txti i
+value (XlsxStr t)      = t
 value (XlsxDouble d)   = txtd d
 value (XlsxBool True)  = "1"
 value (XlsxBool False) = "0"
@@ -478,12 +481,20 @@ transformSheetData shared ws = map transformRow $ toRows (ws ^. wsCells)
   where
     transformRow = second (map transformCell)
     transformCell (c, Cell{..}) =
-        (c, XlsxCell _cellStyle (fmap transformValue _cellValue) _cellComment _cellFormula)
+        (c, XlsxCell _cellStyle (transformValueMaybe _cellFormula _cellValue) _cellComment _cellFormula)
     transformValue (CellText t) = XlsxSS (sstLookupText shared t)
     transformValue (CellDouble dbl) =  XlsxDouble dbl
     transformValue (CellBool b) = XlsxBool b
     transformValue (CellRich r) = XlsxSS (sstLookupRich shared r)
     transformValue (CellError e) = XlsxError e
+
+    transformValueMaybe :: Maybe CellFormula -> Maybe CellValue -> Maybe XlsxCellData
+    transformValueMaybe (Just _) (Just (CellText t)) = Just (XlsxStr t)
+    transformValueMaybe (Just _) (Just (CellRich r)) = Just (XlsxStr (richTextPlain r))
+    transformValueMaybe _ v = fmap transformValue v
+    
+    richTextPlain :: [RichTextRun] -> Text
+    richTextPlain = mconcat . map (view richTextRunText)
 
 bookFiles :: Xlsx -> [FileData]
 bookFiles xlsx = runST $ do

@@ -79,12 +79,18 @@ upsertSharedStrings row =
   traverse upsertSharedString items
   where
     items :: [Text]
-    items = row ^.. ri_cell_row . traversed . cellValue . _Just . _CellText
+    items =
+      row ^.. ri_cell_row . traversed
+        . filtered (isNothing . view cellFormula)
+        . cellValue . _Just . _CellText
 
 -- | Process sheetItems into shared strings structure to be put into
 --   'writeXlsxWithSharedStrings'
 sharedStrings :: Monad m  => ConduitT Row b m (Map Text Int)
-sharedStrings = void sharedStringsStream .| CL.foldMap (uncurry Map.singleton)
+sharedStrings =
+  fmap (fmap (\(T _ i) -> i) . view string_map) $
+    C.execStateC initialSharedString $
+      CL.mapM_ (void . upsertSharedStrings)
 
 -- | creates a unique number for every encountered string in the stream
 --   This is used for creating a required structure in the xlsx format

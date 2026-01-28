@@ -101,7 +101,11 @@ sstConstruct =
     SharedStringTable . V.fromList . uniq . concatMap goSheet
   where
     goSheet :: Worksheet -> [XlsxText]
-    goSheet = mapMaybe (_cellValue >=> sstEntry) . Map.elems . _wsCells
+    goSheet = mapMaybe sstCell . Map.elems . _wsCells
+      where
+        sstCell Cell { _cellFormula = Just _ } = Nothing
+        sstCell Cell { _cellFormula = Nothing, _cellValue = Just value } = sstEntry value
+        sstCell _ = Nothing
 
     sstEntry :: CellValue -> Maybe XlsxText
     sstEntry (CellText text) = Just $ XlsxText (cleanText text)

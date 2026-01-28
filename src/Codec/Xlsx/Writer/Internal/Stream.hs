@@ -24,6 +24,7 @@ import Control.Lens
 import Control.Monad.State.Strict
 import Data.Char
 import Data.Map.Strict (Map)
+import qualified Data.Map.Strict as M
 import Data.Text (Text)
 import qualified Data.Text as Text
 
@@ -49,5 +50,5 @@ upsertSharedString (cleanText -> current) = do
     Just (T old i) -> pure (old, i)
     Nothing -> do
       let !idx = length strings
-      string_map .= (strings & ix current .~ T current idx)
+      string_map .= M.insert current (T current idx) strings
       pure (current, idx)
